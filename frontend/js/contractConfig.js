@@ -4,12 +4,12 @@
 // against the local Anvil node. ABI mirrors src/BountyPulse.sol exactly.
 // ---------------------------------------------------------------------
 
-const CONTRACT_ADDRESS = "0xYourDeployedContractAddressHere"; // <-- update after `forge script` deploy
+const CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"; // <-- update after `forge script` deploy
 const ANVIL_CHAIN_ID = 31337n; // MetaMask must be on this chain (Anvil default)
 
 // Pinata JWT for pinning files/JSON to IPFS. Put your own JWT here for local dev only.
 // (In a real deployment this should never live in client-side code as-is.)
-const PINATA_JWT = "PASTE_YOUR_PINATA_JWT_HERE";
+const PINATA_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJhMDBlMWU1ZS0zMWI4LTQ5M2EtYThjYS1mZTZmOTkwN2M0MzkiLCJlbWFpbCI6ImFiZHVsbGFoLmFyLnJhZmkyQGcuYnJhY3UuYWMuYmQiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiMmI3YzY2MWJjMzE3NTBiZjU4MTYiLCJzY29wZWRLZXlTZWNyZXQiOiJmMzM1NjQ4MzAyNDkwMWVlNTM1ZjY2OWUxYTZhYzBhODdjMGQxM2E1MGUxOGRmYTY1ZjYyNDViZDVlOTczZmU0IiwiZXhwIjoxODE3ODI2Mzk1fQ.nihYivzcz3OqXjK786BvYYYks-wqMJJhpTccEiM1qAo";
 const PINATA_PIN_FILE_URL = "https://api.pinata.cloud/pinning/pinFileToIPFS";
 const IPFS_GATEWAY = "https://gateway.pinata.cloud/ipfs/";
 
