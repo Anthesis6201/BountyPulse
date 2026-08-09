@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BountyPulse | Decentralized Micro-Bounty & Escrow</title>
+<link rel="stylesheet" href="css/style.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.umd.min.js"></script>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <h1>BountyPulse</h1>
+    </div>
+    <div id="walletBox" class="wallet-box">
+      <button id="connectBtn" class="btn primary">Connect Wallet</button>
+      <div id="walletInfo" class="wallet-info hidden">
+        <span id="walletAddress" class="address"></span>
+        <span id="walletRole" class="role-badge">—</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="app" class="hidden">
+
+    <!-- ============ REGISTRATION ============ -->
+    <section id="registerPanel" class="panel hidden">
+      <h2>Register on BountyPulse</h2>
+      <p class="muted">Your wallet isn't in the on-chain registry yet. Register once to continue.</p>
+      <form id="registerForm" class="form-grid">
+        <label>
+          Display Name
+          <input type="text" id="regName" required placeholder="e.g. Ada Lovelace" />
+        </label>
+        <label>
+          Role
+          <select id="regRole" required>
+            <option value="1">Client (posts bounties)</option>
+            <option value="2">Freelancer (bids &amp; delivers work)</option>
+          </select>
+        </label>
+        <label class="full">
+          Avatar Image (pinned to IPFS via Pinata)
+          <input type="file" id="regAvatarFile" accept="image/*" required />
+        </label>
+        <div id="regAvatarPreviewWrap" class="preview-wrap hidden">
+          <img id="regAvatarPreview" class="avatar-preview" />
+          <span id="regAvatarCid" class="cid-tag"></span>
+        </div>
+        <button type="submit" class="btn primary full">Register</button>
+      </form>
+    </section>
+
+    <!-- ============ DASHBOARDS (shown after registration) ============ -->
+    <div id="dashboards" class="hidden">
+
+      <!-- Reputation / balance strip, shown for all roles -->
+      <section class="stat-strip">
+        <div class="stat-card">
+          <span class="stat-label">Name</span>
+          <span id="statName" class="stat-value">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Role</span>
+          <span id="statRole" class="stat-value">—</span>
+        </div>
+        <div id="statRepCard" class="stat-card hidden">
+          <span class="stat-label">Reputation</span>
+          <span id="statReputation" class="stat-value">—</span>
+        </div>
+        <div id="statEarningsCard" class="stat-card highlight hidden">
+          <span class="stat-label">Unclaimed Earnings</span>
+          <span id="statEarnings" class="stat-value">— ETH</span>
+          <button id="claimFundsBtn" class="btn small">Claim Funds</button>
+        </div>
+      </section>
+
+      <!-- ============ CLIENT DASHBOARD ============ -->
+      <section id="clientDashboard" class="dashboard hidden">
+        <h2>Post a Bounty</h2>
+        <form id="postBountyForm" class="form-grid">
+          <label>
+            Max Budget (ETH)
+            <input type="number" id="bountyBudget" step="0.0001" min="0" required placeholder="0.5" />
+          </label>
+          <label class="full">
+            Bounty Description File (pinned to IPFS)
+            <input type="file" id="bountyDetailsFile" required />
+          </label>
+          <button type="submit" class="btn primary full">Post Bounty</button>
+        </form>
+
+        <h2>My Bounties &amp; Incoming Bids</h2>
+        <div id="clientBountyList" class="bounty-list"></div>
+      </section>
+
+      <!-- ============ FREELANCER DASHBOARD ============ -->
+      <section id="freelancerDashboard" class="dashboard hidden">
+        <h2>Open Bounty Feed</h2>
+        <div class="sort-bar">
+          <label>
+            Sort by:
+            <select id="sortSelect">
+              <option value="budget-desc">Highest Budget</option>
+              <option value="budget-asc">Lowest Budget</option>
+              <option value="newest">Newest First</option>
+            </select>
+          </label>
+        </div>
+        <div id="feedBountyList" class="bounty-list"></div>
+
+        <h2>My Active Work</h2>
+        <div id="myWorkList" class="bounty-list"></div>
+      </section>
+
+      <!-- ============ ARBITER DASHBOARD ============ -->
+      <section id="arbiterDashboard" class="dashboard hidden">
+        <h2>Disputed Bounties</h2>
+        <div id="disputeList" class="bounty-list"></div>
+
+        <h2>All Bounties (Overseer View)</h2>
+        <div id="allBountiesList" class="bounty-list"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <div id="toastRoot" class="toast-root"></div>
+
+  <script src="js/contractConfig.js"></script>
+  <script src="js/ipfsHelper.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
