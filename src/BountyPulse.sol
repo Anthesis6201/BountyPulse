@@ -93,7 +93,7 @@ contract BountyPulse {
     event BidPlaced(uint256 indexed bountyId, address indexed freelancer, uint256 amount);
     event EscrowFunded(uint256 indexed bountyId, address indexed client, address indexed freelancer, uint256 amount);
     event WorkSubmitted(uint256 indexed bountyId, address indexed freelancer, string ipfsWorkFileHash);
-    //
+    event WorkApproved(uint256 indexed bountyId, address indexed freelancer, uint256 payout, uint256 fee);
     event FundsClaimed(address indexed user, uint256 amount);
     event DisputeRaised(uint256 indexed bountyId, address indexed client);
     event DisputeResolved(uint256 indexed bountyId, bool freelancerFault);
@@ -284,7 +284,7 @@ contract BountyPulse {
         users[b.selectedFreelancer].reputation += REPUTATION_REWARD;
         b.status = BountyStatus.Resolved;
 
-        //
+        emit WorkApproved(_bountyId, b.selectedFreelancer, payout, fee);
     }
 
     // ---------------------------------------------------------------------
