@@ -49,7 +49,9 @@ async function connectWallet() {
   $("walletInfo").classList.remove("hidden");
   $("walletAddress").textContent = shortAddr(currentAddress);
 
-//todo
+  await refreshIdentityAndUI();
+  attachEventListeners();
+}
 
 function shortAddr(addr) {
   return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : "";
@@ -125,7 +127,11 @@ async function refreshIdentityAndUI() {
   }
 }
 
-//todo
+async function refreshEarnings() {
+  const bal = await contract.withdrawableBalance(currentAddress);
+  $("statEarningsCard").classList.remove("hidden");
+  $("statEarnings").textContent = `${ethers.formatEther(bal)} ETH`;
+}
 
 // ---------------------------------------------------------------------
 // Registration
