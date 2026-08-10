@@ -484,34 +484,7 @@ async function fetchAllBounties() {
   return allBounties;
 }
 
-// ---------------------------------------------------------------------
-// 3.5 Real-Time Event Syncing — no window.location.reload() anywhere.
-// ---------------------------------------------------------------------
-let listenersAttached = false;
-function attachEventListeners() {
-  if (listenersAttached) return;
-  listenersAttached = true;
-
-  const rerenderCurrentDashboard = async () => {
-    if (!currentUser || !currentUser.registered) return;
-    if (currentUser.role === ROLE.CLIENT) await renderClientDashboard();
-    else if (currentUser.role === ROLE.FREELANCER) await renderFreelancerDashboard();
-    else if (currentUser.role === ROLE.ARBITER) await renderArbiterDashboard();
-    await refreshEarnings().catch(() => {});
-  };
-
-  contract.on("BountyPosted", () => { toast("A new bounty was posted."); rerenderCurrentDashboard(); });
-  contract.on("BidPlaced", () => { rerenderCurrentDashboard(); });
-  contract.on("EscrowFunded", () => { toast("Escrow funded on a bounty."); rerenderCurrentDashboard(); });
-  contract.on("WorkSubmitted", () => { toast("Work was submitted."); rerenderCurrentDashboard(); });
-  contract.on("WorkApproved", (bountyId, freelancer) => {
-    toast("Work approved — earnings updated.");
-    rerenderCurrentDashboard();
-  });
-  contract.on("FundsClaimed", () => { rerenderCurrentDashboard(); });
-  contract.on("DisputeRaised", () => { toast("A dispute was raised."); rerenderCurrentDashboard(); });
-  contract.on("DisputeResolved", () => { toast("A dispute was resolved."); rerenderCurrentDashboard(); });
-}
+//3.5 - recheck
 
 // ---------------------------------------------------------------------
 // Boot
