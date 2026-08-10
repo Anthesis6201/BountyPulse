@@ -6,6 +6,7 @@ let provider, signer, contract, contractReadOnly;
 let currentAddress = null;
 let currentUser = null; // { name, role, ipfsAvatarHash, reputation, registered }
 let allBounties = [];   // cached from getAllBounties(), re-synced by events
+let _lastOwnAction = null; // tracks the user's own action to suppress duplicate event toasts
 
 const $ = (id) => document.getElementById(id);
 
@@ -176,12 +177,13 @@ $("postBountyForm").addEventListener("submit", async (e) => {
     const cid = await pinFileToIPFS(file, `bounty-${Date.now()}`);
 
     toast("Posting bounty on-chain…");
+    _lastOwnAction = "BountyPosted";
     const tx = await contract.postBounty(ethers.parseEther(budgetEth), cid);
     await tx.wait();
 
     toast("Bounty posted!");
     $("postBountyForm").reset();
-    await renderClientDashboard();
+    // Re-render is handled by the BountyPosted event listener (no explicit call here).
   } catch (err) {
     console.error(err);
     toast(err.reason || err.message || "Failed to post bounty", "error");
@@ -249,10 +251,11 @@ async function renderClientDashboard() {
       try {
         const { bounty, freelancer, amount } = btn.dataset;
         toast("Funding escrow — confirm the transaction in MetaMask…");
+        _lastOwnAction = "EscrowFunded";
         const tx = await contract.selectAndFund(bounty, freelancer, amount, { value: amount });
         await tx.wait();
         toast("Escrow funded!");
-        await renderClientDashboard();
+        // Re-render is handled by the EscrowFunded event listener.
       } catch (err) {
         console.error(err);
         toast(err.reason || err.message || "Escrow funding failed", "error");
@@ -263,10 +266,11 @@ async function renderClientDashboard() {
   container.querySelectorAll(".approve-work").forEach((btn) =>
     btn.addEventListener("click", async () => {
       try {
+        _lastOwnAction = "WorkApproved";
         const tx = await contract.approveWork(btn.dataset.bounty);
         await tx.wait();
         toast("Work approved — freelancer paid (pull-payment).");
-        await renderClientDashboard();
+        // Re-render is handled by the WorkApproved event listener.
       } catch (err) {
         toast(err.reason || err.message || "Approval failed", "error");
       }
@@ -276,10 +280,11 @@ async function renderClientDashboard() {
   container.querySelectorAll(".dispute-work").forEach((btn) =>
     btn.addEventListener("click", async () => {
       try {
+        _lastOwnAction = "DisputeRaised";
         const tx = await contract.disputeWork(btn.dataset.bounty);
         await tx.wait();
         toast("Dispute raised — awaiting Arbiter.");
-        await renderClientDashboard();
+        // Re-render is handled by the DisputeRaised event listener.
       } catch (err) {
         toast(err.reason || err.message || "Dispute failed", "error");
       }
@@ -329,10 +334,11 @@ async function renderFreelancerDashboard() {
         const bountyId = btn.dataset.bounty;
         const input = feed.querySelector(`.bid-amount[data-bounty="${bountyId}"]`);
         if (!input.value) return toast("Enter a bid amount.", "error");
+        _lastOwnAction = "BidPlaced";
         const tx = await contract.placeBid(bountyId, ethers.parseEther(input.value));
         await tx.wait();
         toast("Bid submitted!");
-        await renderFreelancerDashboard();
+        // Re-render is handled by the BidPlaced event listener.
       } catch (err) {
         toast(err.reason || err.message || "Bid failed", "error");
       }
@@ -385,11 +391,12 @@ async function renderFreelancerDashboard() {
         const cid = await pinFileToIPFS(file, `work-${bountyId}`);
 
         toast("Submitting work on-chain…");
+        _lastOwnAction = "WorkSubmitted";
         const tx = await contract.submitWork(bountyId, cid);
         await tx.wait();
 
         toast("Work submitted!");
-        await renderFreelancerDashboard();
+        // Re-render is handled by the WorkSubmitted event listener.
       } catch (err) {
         toast(err.reason || err.message || "Submission failed", "error");
       }
@@ -427,10 +434,11 @@ async function renderArbiterDashboard() {
   disputeList.querySelectorAll(".resolve-fault").forEach((btn) =>
     btn.addEventListener("click", async () => {
       try {
+        _lastOwnAction = "DisputeResolved";
         const tx = await contract.resolveDispute(btn.dataset.bounty, btn.dataset.fault === "true");
         await tx.wait();
         toast("Dispute resolved.");
-        await renderArbiterDashboard();
+        // Re-render is handled by the DisputeResolved event listener.
       } catch (err) {
         toast(err.reason || err.message || "Resolution failed", "error");
       }
@@ -460,10 +468,11 @@ async function renderArbiterDashboard() {
 // ---------------------------------------------------------------------
 $("claimFundsBtn").addEventListener("click", async () => {
   try {
+    _lastOwnAction = "FundsClaimed";
     const tx = await contract.claimFunds();
     await tx.wait();
     toast("Funds claimed to your wallet!");
-    await refreshEarnings();
+    // Re-render / refreshEarnings is handled by the FundsClaimed event listener.
   } catch (err) {
     toast(err.reason || err.message || "Claim failed", "error");
   }
@@ -490,31 +499,44 @@ async function fetchAllBounties() {
 
 
 // 3.5 Real-Time Event Syncing — no window.location.reload() anywhere.
+// All dashboard re-renders are driven exclusively by contract events (no
+// explicit re-render after tx.wait) to avoid the duplicate-entry race.
+
+let _rerenderTimer = null;
+function debouncedRerender() {
+  if (_rerenderTimer) clearTimeout(_rerenderTimer);
+  _rerenderTimer = setTimeout(async () => {
+    _rerenderTimer = null;
+    if (!currentUser || !currentUser.registered) return;
+    if (currentUser.role === ROLE.CLIENT) await renderClientDashboard();
+    else if (currentUser.role === ROLE.FREELANCER) await renderFreelancerDashboard();
+    else if (currentUser.role === ROLE.ARBITER) await renderArbiterDashboard();
+    await refreshEarnings().catch(() => {});
+  }, 300);
+}
+
+/** Show a toast for an event ONLY if it was not triggered by the current user's own action. */
+function eventToast(eventName, message) {
+  if (_lastOwnAction === eventName) {
+    _lastOwnAction = null; // consume — the user already saw their own success toast
+    return;
+  }
+  toast(message);
+}
 
 let listenersAttached = false;
 function attachEventListeners() {
   if (listenersAttached) return;
   listenersAttached = true;
 
-  const rerenderCurrentDashboard = async () => {
-    if (!currentUser || !currentUser.registered) return;
-    if (currentUser.role === ROLE.CLIENT) await renderClientDashboard();
-    else if (currentUser.role === ROLE.FREELANCER) await renderFreelancerDashboard();
-    else if (currentUser.role === ROLE.ARBITER) await renderArbiterDashboard();
-    await refreshEarnings().catch(() => {});
-  };
-
-  contract.on("BountyPosted", () => { toast("A new bounty was posted."); rerenderCurrentDashboard(); });
-  contract.on("BidPlaced", () => { rerenderCurrentDashboard(); });
-  contract.on("EscrowFunded", () => { toast("Escrow funded on a bounty."); rerenderCurrentDashboard(); });
-  contract.on("WorkSubmitted", () => { toast("Work was submitted."); rerenderCurrentDashboard(); });
-  contract.on("WorkApproved", (bountyId, freelancer) => {
-    toast("Work approved — earnings updated.");
-    rerenderCurrentDashboard();
-  });
-  contract.on("FundsClaimed", () => { rerenderCurrentDashboard(); });
-  contract.on("DisputeRaised", () => { toast("A dispute was raised."); rerenderCurrentDashboard(); });
-  contract.on("DisputeResolved", () => { toast("A dispute was resolved."); rerenderCurrentDashboard(); });
+  contract.on("BountyPosted", () => { eventToast("BountyPosted", "A new bounty was posted."); debouncedRerender(); });
+  contract.on("BidPlaced",    () => { eventToast("BidPlaced", "A new bid was placed.");       debouncedRerender(); });
+  contract.on("EscrowFunded", () => { eventToast("EscrowFunded", "Escrow funded on a bounty."); debouncedRerender(); });
+  contract.on("WorkSubmitted", () => { eventToast("WorkSubmitted", "Work was submitted.");     debouncedRerender(); });
+  contract.on("WorkApproved", () => { eventToast("WorkApproved", "Work approved — earnings updated."); debouncedRerender(); });
+  contract.on("FundsClaimed", () => { eventToast("FundsClaimed", "Funds were claimed.");       debouncedRerender(); });
+  contract.on("DisputeRaised", () => { eventToast("DisputeRaised", "A dispute was raised.");   debouncedRerender(); });
+  contract.on("DisputeResolved", () => { eventToast("DisputeResolved", "A dispute was resolved."); debouncedRerender(); });
 }
 
 // ---------------------------------------------------------------------
