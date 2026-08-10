@@ -242,21 +242,7 @@ async function renderClientDashboard() {
     container.appendChild(card);
   }
 
-  container.querySelectorAll(".select-bid").forEach((btn) =>
-    btn.addEventListener("click", async () => {
-      try {
-        const { bounty, freelancer, amount } = btn.dataset;
-        toast("Funding escrow — confirm the transaction in MetaMask…");
-        const tx = await contract.selectAndFund(bounty, freelancer, amount, { value: amount });
-        await tx.wait();
-        toast("Escrow funded!");
-        await renderClientDashboard();
-      } catch (err) {
-        console.error(err);
-        toast(err.reason || err.message || "Escrow funding failed", "error");
-      }
-    })
-  );
+
 
   container.querySelectorAll(".approve-work").forEach((btn) =>
     btn.addEventListener("click", async () => {
@@ -288,18 +274,13 @@ async function renderClientDashboard() {
 // ---------------------------------------------------------------------
 // FREELANCER dashboard
 // ---------------------------------------------------------------------
-$("sortSelect").addEventListener("change", renderFreelancerDashboard);
+
 
 async function renderFreelancerDashboard() {
   const all = await fetchAllBounties();
   let open = all.filter((b) => b.status === 0);
 
-  // Sorting Constraint (3.2): client-side sort over the cached array —
-  // one getAllBounties() view call instead of N per-bounty RPC round trips.
-  const sortMode = $("sortSelect").value;
-  if (sortMode === "budget-desc") open.sort((a, b) => (b.maxBudget > a.maxBudget ? 1 : -1));
-  else if (sortMode === "budget-asc") open.sort((a, b) => (a.maxBudget > b.maxBudget ? 1 : -1));
-  else if (sortMode === "newest") open.sort((a, b) => Number(b.id) - Number(a.id));
+
 
   const feed = $("feedBountyList");
   feed.innerHTML = "";
@@ -453,36 +434,9 @@ async function renderArbiterDashboard() {
 }
 
 // ---------------------------------------------------------------------
-// Claim Funds (pull-payment, shared by Freelancer & Arbiter)
-// ---------------------------------------------------------------------
-$("claimFundsBtn").addEventListener("click", async () => {
-  try {
-    const tx = await contract.claimFunds();
-    await tx.wait();
-    toast("Funds claimed to your wallet!");
-    await refreshEarnings();
-  } catch (err) {
-    toast(err.reason || err.message || "Claim failed", "error");
-  }
-});
 
-// ---------------------------------------------------------------------
-// Data fetching (3.2 View Operations)
-// ---------------------------------------------------------------------
-async function fetchAllBounties() {
-  const raw = await contract.getAllBounties();
-  allBounties = raw.map((b) => ({
-    id: b.id,
-    client: b.client,
-    maxBudget: b.maxBudget,
-    ipfsBountyDetailsHash: b.ipfsBountyDetailsHash,
-    status: Number(b.status),
-    selectedFreelancer: b.selectedFreelancer,
-    agreedAmount: b.agreedAmount,
-    ipfsWorkFileHash: b.ipfsWorkFileHash,
-  }));
-  return allBounties;
-}
+
+
 
 
 // 3.5 Real-Time Event Syncing — no window.location.reload() anywhere.
