@@ -6,13 +6,6 @@ import {BountyPulse} from "../src/BountyPulse.sol";
 
 /// @notice Deploys BountyPulse to whatever RPC is targeted (local Anvil by default).
 ///         The deployer becomes the Arbiter (see contract constructor).
-///
-/// Usage (local Anvil):
-///   anvil                                              // terminal 1
-///   forge script script/Deploy.s.sol:Deploy \
-///     --rpc-url http://127.0.0.1:8545 \
-///     --private-key <ANVIL_ACCOUNT_0_PRIVATE_KEY> \
-///     --broadcast                                      // terminal 2
 contract Deploy is Script {
     function run() external returns (BountyPulse) {
         uint256 deployerKey = vm.envOr("PRIVATE_KEY", uint256(0));
